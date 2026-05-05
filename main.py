@@ -8,7 +8,7 @@ from flask import Flask
 # Вставь свой токен внутри кавычек
 TOKEN = "8759513828:AAH647wLGDflE7ks5iWOBrCxYnWNBzKEwbE"
 # Ключевые слова для поиска (можно дополнять)
-KEYWORDS = ['sber', 'vtb', 'tinkoff', 'binance', 'steam', 'wallet', 'roblox', 'ozon', 'avito']
+KEYWORDS = ['sber', 'vtb', 'tinkoff', 'binance', 'steam', 'wallet', 'roblox', 'ozon', 'avito','google']
 
 bot = telebot.TeleBot(TOKEN)
 active_users = set()
