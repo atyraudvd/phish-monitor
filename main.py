@@ -6,7 +6,7 @@ from flask import Flask
 
 # --- НАСТРОЙКИ ---
 # Вставь свой токен внутри кавычек
-TOKEN = "8752998340:AAHUnmqO6Gus55VRXMhNrDnCwFE2Vshjfxw"
+TOKEN = "8759513828:AAH647wLGDflE7ks5iWOBrCxYnWNBzKEwbE"
 # Ключевые слова для поиска (можно дополнять)
 KEYWORDS = ['sber', 'vtb', 'tinkoff', 'binance', 'steam', 'wallet', 'roblox', 'ozon', 'avito']
 
