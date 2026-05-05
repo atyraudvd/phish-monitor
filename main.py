@@ -92,4 +92,4 @@ if __name__ == "__main__":
     threading.Thread(target=lambda: bot.infinity_polling(timeout=20), daemon=True).start()
     # Сканер
     print("Система запущена...")
-    certstream.listen_for_events(certstream_callback, url='wss://certstream.calidog.io/')
+    certstream.listen_for_events(certstream_callback, url='wss://certstream.calidog.io/') 
