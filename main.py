@@ -5,15 +5,16 @@ import os
 from flask import Flask
 
 # --- НАСТРОЙКИ ---
-# Вставь свой токен внутри кавычек
+# Токен из твоего BotFather (Снимок экрана 2026-05-05 111215.jpg)
 TOKEN = "8759513828:AAH647wLGDflE7ks5iWOBrCxYnWNBzKEwbE"
-# Ключевые слова для поиска (можно дополнять)
-KEYWORDS = ['sber', 'vtb', 'tinkoff', 'binance', 'steam', 'wallet', 'roblox', 'ozon','avito']
+
+# Ключевые слова для поиска мошенников
+KEYWORDS = ['sber', 'vtb', 'tinkoff', 'binance', 'steam', 'wallet', 'roblox', 'ozon', 'avito']
 
 bot = telebot.TeleBot(TOKEN)
 active_users = set()
 
-# --- ВЕБ-СЕРВЕР ДЛЯ RENDER (чтобы не было ошибки Status 2) ---
+# --- ВЕБ-СЕРВЕР ДЛЯ RENDER (чтобы сервис не засыпал) ---
 app = Flask(__name__)
 
 @app.route('/')
@@ -21,13 +22,11 @@ def health_check():
     return "Monitoring is Live!", 200
 
 def run_web():
-    # Render сам назначит порт через переменную окружения
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
-# --- ЛОГИКА МОНИТОРИНГА ---
-@bot.message_handler(commands=['start'])
-def @bot.message_handler(commands=['start', 'help'])
+# --- ЛОГИКА КОНСУЛЬТАЦИИ И ПРИВЕТСТВИЯ ---
+@bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     welcome_text = (
         "🛡️ **ДОБРО ПОЖАЛОВАТЬ В СИСТЕМУ КИБЕРКОНТРОЛЯ!**\n\n"
@@ -36,15 +35,17 @@ def send_welcome(message):
         "1️⃣ **ПРОВЕРЬ ССЫЛКУ:** Если домен похож на известный бренд, но в нем лишние буквы "
         "(например, `sbeerr` вместо `sber`), это **100% мошенничество**.\n\n"
         "2️⃣ **НИКОГДА НЕ ОТПРАВЛЯЙ КОД:** Никакой официальный банк или сервис не попросит "
-        "тебя прислать код из SMS или Push-уведомления. Если просят — это воры!\n\n"
+        "тебя прислать код из SMS. Если просят — это воры!\n\n"
         "3️⃣ **НЕ НАЖИМАЙ:** Даже если на сайте обещают подарки или выплаты. Просто закрой вкладку.\n\n"
-        "4️⃣ **НЕ ВВОДИ ДАННЫЕ:** Пароли, номера карт и CVV-коды вводятся только на официальных приложениях.\n\n"
+        "4️⃣ **НЕ ВВОДИ ДАННЫЕ:** Пароли и номера карт вводятся только в официальных приложениях.\n\n"
         "✅ **Мониторинг запущен!** Как только я найду реальную угрозу, я пришлю тебе алерт."
     )
-    bot.reply_to(message, welcome_text, parse_mode='Markdown')
+    # Добавляем пользователя в список рассылки
     active_users.add(message.chat.id)
-    bot.send_message(message.chat.id, "✅ **Мониторинг запущен!**\n\nЯ сканирую новые домены в реальном времени. Если найду совпадение с твоими ключевыми словами — сразу пришлю уведомление.")
+    # Отправляем инструкцию
+    bot.reply_to(message, welcome_text, parse_mode='Markdown')
 
+# --- ЛОГИКА МОНИТОРИНГА ДОМЕНОВ ---
 def certstream_callback(message, context):
     if message['message_type'] == "certificate_update":
         all_domains = message['data']['leaf_cert']['all_domains']
@@ -52,25 +53,32 @@ def certstream_callback(message, context):
             domain = domain.lower()
             for key in KEYWORDS:
                 if key in domain:
-                    # Если нашли совпадение, рассылаем всем пользователям бота
+                    # Если нашли совпадение, рассылаем уведомление с предупреждением
+                    alert_text = (
+                        f"🚨 **ОБНАРУЖЕН ПОДОЗРИТЕЛЬНЫЙ ДОМЕН:**\n\n"
+                        f"`{domain}`\n\n"
+                        f"🛑 **ПРЕДУПРЕЖДЕНИЕ:** Это может быть мошенничество! "
+                        f"Не переходи по ссылке и не вводи свои данные.\n\n"
+                        f"#фишинг #{key}"
+                    )
                     for user_id in active_users:
                         try:
-                            bot.send_message(user_id, f"🚨 **ОБНАРУЖЕН ПОДОЗРИТЕЛЬНЫЙ ДОМЕН:**\n\n`{domain}`\n\n#фишинг #{key}")
+                            bot.send_message(user_id, alert_text, parse_mode='Markdown')
                         except Exception as e:
                             print(f"Ошибка отправки: {e}")
 
-# --- ЗАПУСК ---
+# --- ЗАПУСК ВСЕХ ПРОЦЕССОВ ---
 if __name__ == "__main__":
-    # 1. Запускаем веб-заглушку в отдельном потоке
+    # 1. Запуск веб-сервера (для Render)
     web_thread = threading.Thread(target=run_web)
     web_thread.daemon = True
     web_thread.start()
 
-    # 2. Запускаем Telegram бота в отдельном потоке
-    bot_thread = threading.Thread(target=bot.infinity_polling)
+    # 2. Запуск Telegram бота
+    bot_thread = threading.Thread(target=lambda: bot.infinity_polling(timeout=10, long_polling_timeout=5))
     bot_thread.daemon = True
     bot_thread.start()
 
-    # 3. Запускаем сканер (основной процесс)
-    print("Сканирование запущено...")
+    # 3. Запуск сканера Certstream
+    print("Система киберконтроля запущена...")
     certstream.listen_for_events(certstream_callback, url='wss://certstream.calidog.io/')
